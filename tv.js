@@ -1,14 +1,8 @@
 /* eslint-disable camelcase */
-/* eslint-disable guard-for-in */
-/* eslint-disable no-unused-vars */
-/* eslint-disable max-len */
-/* eslint-disable require-jsdoc */
-/* eslint-disable one-var */
 /* eslint-disable no-var */
 
 /**
- * K&D IPTV - Plugin para Movian
- * Lista Oficial: bit.ly/KDmovis
+ * K&D IPTV - Versión Final Estable
  */
 
 var page = require('showtime/page');
@@ -20,10 +14,13 @@ var io = require('native/io');
 
 // --- IMPORTACIÓN DE MÓDULOS ---
 var Base64 = require('./utils/Base64').Base64; 
+var Unpacker = require('./utils/Dean-Edwards-Unpacker').unpacker;
+var Utils = require('./utils/utils');
+
 var plugin = JSON.parse(Plugin.manifest);
 var logo = Plugin.path + plugin.icon;
 
-// --- PERSISTENCIA ---
+// --- PERSISTENCIA SEGURA ---
 var store = require('movian/store').create('favorites');
 var playlists = require('movian/store').create('playlists');
 var history = require('movian/store').create('history');
@@ -33,7 +30,7 @@ if (!playlists.list) playlists.list = '[]';
 if (!history.list) history.list = '[]';
 
 // --- ESTILOS ---
-var cyan = '00CCFF', orange = 'FFA500';
+var cyan = '00CCFF';
 function coloredStr(str, color) { return '<font color="' + color + '">' + str + '</font>'; }
 
 RichText = function(x) { this.str = x.toString(); };
@@ -53,15 +50,13 @@ function setPageHeader(page, title) {
 function smartDecode(str) {
   if (!str) return '';
   var cleanStr = str.replace('base64:', '').trim();
-  try {
-    if (/^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/.test(cleanStr)) {
-      return Base64.decode(cleanStr);
-    }
-  } catch (e) { return str; }
+  // Validar si es Base64 antes de procesar
+  if (/^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/.test(cleanStr) && cleanStr.length > 5) {
+    try { return Base64.decode(cleanStr); } catch (e) { return str; }
+  }
   return str;
 }
 
-// --- GESTIÓN DE HISTORIAL ---
 function addToHistory(title, link, icon) {
   var currentHistory = JSON.parse(history.list);
   var entry = { title: title, link: link, icon: icon };
@@ -71,19 +66,24 @@ function addToHistory(title, link, icon) {
   history.list = JSON.stringify(currentHistory);
 }
 
+// --- CONFIGURACIÓN ---
+settings.createString('acestreamIp', 'IP de AceStream Proxy', '192.168.0.93', function(v) {
+  service.acestreamIp = v;
+});
+
 // --- RUTA PRINCIPAL ---
 service.create(plugin.title, plugin.id + ':start', 'tv', true, logo);
 
 new page.Route(plugin.id + ':start', function(page) {
   setPageHeader(page, plugin.title);
-  
-  // 1. LISTA OFICIAL (BLOQUEADA Y PERMANENTE)
+
+  // 1. LISTA OFICIAL K&D
   page.appendItem('', 'separator', { title: 'Servicio Oficial' });
   var defaultUrl = 'http://bit.ly/KDmovis';
   page.appendItem('m3u:' + encodeURIComponent(defaultUrl), 'directory', { 
     title: coloredStr('★ K&D IPTV Premium', cyan),
     icon: logo,
-    description: 'Acceso a la lista maestra de K&D. Actualizada automáticamente.'
+    description: 'Lista maestra oficial. Actualización automática.'
   });
 
   // 2. HISTORIAL
@@ -98,36 +98,34 @@ new page.Route(plugin.id + ':start', function(page) {
     });
   }
 
-  // 3. MIS LISTAS Y FAVORITOS
+  // 3. SECCIÓN PERSONAL
   page.appendItem('', 'separator', { title: 'Personal' });
   page.appendItem(plugin.id + ':favorites', 'directory', { title: 'Mis Favoritos' });
 
-  // Botón para añadir externas
-  page.options.createAction('addPl', 'Añadir Lista Externa / Magnet', function() {
-    var res = popup.textDialog('URL, Magnet o Base64:', true, true);
+  page.options.createAction('addPl', 'Añadir Lista/Magnet/Base64', function() {
+    var res = popup.textDialog('Enlace:', true, true);
     if (!res.rejected && res.input) {
       var name = popup.textDialog('Nombre:', true, true);
       if (!name.rejected && name.input) {
-        var entry = JSON.stringify({ title: encodeURIComponent(name.input), link: encodeURIComponent(res.input) });
-        playlists.list = JSON.stringify([entry].concat(eval(playlists.list)));
+        var current = JSON.parse(playlists.list);
+        var entry = { title: encodeURIComponent(name.input), link: encodeURIComponent(res.input) };
+        current.unshift(entry);
+        playlists.list = JSON.stringify(current);
         page.redirect(plugin.id + ':start');
       }
     }
   });
 
-  // Mostrar listas manuales
-  var pl = eval(playlists.list);
-  for (var i in pl) {
-    var item = JSON.parse(pl[i]);
+  // Listar adicionales
+  var pl = JSON.parse(playlists.list);
+  pl.forEach(function(item) {
     var cleanLink = smartDecode(decodeURIComponent(item.link));
-    var route = 'm3u:' + encodeURIComponent(cleanLink);
-    var pItem = page.appendItem(route, 'directory', { title: decodeURIComponent(item.title) });
-    
-    // Acción para borrar listas manuales (la oficial no tiene esto)
-    pItem.addOptAction('Eliminar esta lista', function() {
-       // Lógica de borrado omitida para brevedad, pero puedes añadirla
-    });
-  }
+    var route = (cleanLink.indexOf('magnet:') === 0) ? 
+                plugin.id + ':torrentPlayback:' + escape(cleanLink) + ':' + item.title :
+                'm3u:' + encodeURIComponent(cleanLink);
+                
+    page.appendItem(route, 'directory', { title: decodeURIComponent(item.title) });
+  });
 });
 
 // --- REPRODUCCIÓN TORRENT ---
@@ -140,7 +138,8 @@ new page.Route(plugin.id + ':torrentPlayback:(.*):(.*)', function(page, url, tit
     title: unescape(title),
     sources: [
       {url: 'torrent:' + decodedUrl, mimetype: 'video/torrent'},
-      {url: 'http://' + service.acestreamIp + ':6878/ace/getstream?url=' + escape(decodedUrl), mimetype: 'application/x-mpegURL'}
-    ]
+      {url: 'http://' + (service.acestreamIp || '127.0.0.1') + ':6878/ace/getstream?url=' + escape(decodedUrl), mimetype: 'application/x-mpegURL'}
+    ],
+    no_fs_scan: true
   });
 });
