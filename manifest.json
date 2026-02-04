@@ -1,0 +1,13 @@
+{
+  "id": "tv",
+  "version": "1.0.30",
+  "api_version": 2,
+  "name": "Online TV (Torrent Mod)",
+  "description": "Cargador de listas M3U/XML con soporte nativo para Torrents y Magnets.",
+  "author": "lprot / Mod",
+  "icon": "logo.png",
+  "url": "tv.js",
+  "category": "tv",
+  "platform": "any",
+  "synopsis": "Reproduce canales IPTV y enlaces Torrent/Magnet directamente."
+}
