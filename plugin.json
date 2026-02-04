@@ -1,15 +1,11 @@
 {
-        "description": "<p>K&D IPTV - Cargador avanzado de listas M3U/XML y soporte híbrido para Torrents/AceStream.<p>Desarrollado para una experiencia de TV moderna y fluida.",
-        "author": "K&D IPTV",
-        "homepage": "https://github.com/lprot/movian-plugin-onlinetv",
-        "title": "K&D IPTV",
-        "synopsis": "Tu colección de canales y fuentes de video en alta definición.",
-        "version": "1.1.0",
-        "file": "tv.js",
-        "showtimeVersion": "4.8",
-        "type": "ecmascript",
-        "id": "kd_iptv",
-        "icon": "logo.png",
-        "category": "tv",
-        "apiversion": 2
+    "id": "kd_iptv",
+    "title": "K&D IPTV",
+    "version": "1.1.0",
+    "file": "tv.js",
+    "icon": "logo.png",
+    "author": "K&D IPTV",
+    "description": "Cargador avanzado K&D con soporte Base64 y Torrent.",
+    "type": "ecmascript",
+    "apiversion": 2
 }
