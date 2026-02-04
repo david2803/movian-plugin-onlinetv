@@ -1,15 +1,15 @@
 {
-	"description": "<p>Online TV - is M3U/XML playlist loader and collection of online tv sources.<p>For more information visit corresponding websites.",
-	"author": "lprot",
-	"homepage": "https://github.com/lprot/movian-plugin-onlinetv",
-	"title": "Online TV",
-	"synopsis": "Online TV - collection of online tv sources",
-	"version": "1.0.29",
-	"file": "tv.js",
-	"showtimeVersion": "4.8",
-	"type": "ecmascript",
-	"id": "tv",
-	"icon": "logo.png",
-	"category": "tv",
-	"apiversion": 2
+        "description": "<p>K&D IPTV - Cargador avanzado de listas M3U/XML y soporte híbrido para Torrents/AceStream.<p>Desarrollado para una experiencia de TV moderna y fluida.",
+        "author": "K&D IPTV",
+        "homepage": "https://github.com/lprot/movian-plugin-onlinetv",
+        "title": "K&D IPTV",
+        "synopsis": "Tu colección de canales y fuentes de video en alta definición.",
+        "version": "1.1.0",
+        "file": "tv.js",
+        "showtimeVersion": "4.8",
+        "type": "ecmascript",
+        "id": "tv",
+        "icon": "logo.png",
+        "category": "tv",
+        "apiversion": 2
 }
