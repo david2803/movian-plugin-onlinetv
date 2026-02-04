@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "id": "kd_iptv",
+      "title": "K&D IPTV Premium",
+      "description": "Cargador avanzado con soporte Torrent y Base64.",
+      "synopsis": "Entertainment System",
+      "author": "K&D IPTV",
+      "version": "1.1.0",
+      "type": "ecmascript",
+      "category": "video",
+      "icon": "https://raw.githubusercontent.com/david2803/movian-plugin-onlinetv/main/logo.png",
+      "downloadURL": "https://github.com/david2803/movian-plugin-onlinetv/archive/refs/heads/main.zip",
+      "showtimeVersion": "4.8",
+      "apiversion": 2,
+      "popularity": 1
+    }
+  ]
+}
