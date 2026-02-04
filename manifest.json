@@ -3,11 +3,10 @@
   "version": "1.1.0",
   "api_version": 2,
   "name": "K&D IPTV Premium",
-  "description": "Cargador avanzado de listas M3U/XML con soporte nativo para Torrents, Magnets y Base64.",
+  "description": "IPTV, Torrents y Base64 nativo.",
   "author": "K&D IPTV",
   "icon": "logo.png",
   "url": "tv.js",
   "category": "tv",
-  "platform": "any",
-  "synopsis": "Tu colección de canales y fuentes de video en alta definición con soporte híbrido AceStream."
+  "platform": "any"
 }
