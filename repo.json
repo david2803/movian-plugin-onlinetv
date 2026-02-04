@@ -4,8 +4,8 @@
     {
       "id": "kd_iptv",
       "title": "K&D IPTV Premium",
-      "description": "Cargador avanzado de listas M3U/XML con soporte nativo para Torrents, Magnets y Base64.",
-      "synopsis": "Tu sistema de entretenimiento HD",
+      "description": "Cargador avanzado con soporte Torrent y Base64.",
+      "synopsis": "Entertainment System",
       "author": "K&D IPTV",
       "version": "1.1.0",
       "type": "ecmascript",
