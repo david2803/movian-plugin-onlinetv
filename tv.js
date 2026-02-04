@@ -7,7 +7,8 @@
 /* eslint-disable no-var */
 
 /**
- * Online TV plugin for Movian Media Center (Updated with Torrent/Magnet Support)
+ * Online TV plugin for Movian Media Center 
+ * Total Compatibility Version: tv.js + Base64.js
  */
 
 var page = require('showtime/page');
@@ -18,13 +19,14 @@ var string = require('native/string');
 var popup = require('native/popup');
 var io = require('native/io');
 
-// --- IMPORTACIÓN DE UTILS ---
-var Base64 = require('./utils/Base64').Base64; // Importación de tu archivo Base64.js
+// --- INTEGRACIÓN CON UTILS/BASE64.JS ---
+var Base64 = require('./utils/Base64').Base64; 
 var DeanEdwardsUnpacker = require('./utils/Dean-Edwards-Unpacker').unpacker;
 
 var plugin = JSON.parse(Plugin.manifest);
 var logo = Plugin.path + plugin.icon;
 
+// --- SOPORTE PARA TEXTO ENRIQUECIDO ---
 RichText = function(x) {
   this.str = x.toString();
 };
@@ -35,6 +37,7 @@ RichText.prototype.toRichString = function(x) {
 
 var UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36';
 
+// --- FUNCIONES AUXILIARES ---
 function setPageHeader(page, title) {
   if (page.metadata) {
     page.metadata.title = new RichText(decodeURIComponent(title));
@@ -45,79 +48,52 @@ function setPageHeader(page, title) {
   page.loading = false;
 }
 
-var blue = '6699CC',
-  orange = 'FFA500',
-  red = 'EE0000',
-  green = '008B45';
+var blue = '6699CC', orange = 'FFA500', red = 'EE0000', green = '008B45';
 
 function coloredStr(str, color) {
   return '<font color="' + color + '">' + str + '</font>';
 }
 
-function trim(s) {
-  if (s) return s.replace(/(\r\n|\n|\r)/gm, '').replace(/(^\s*)|(\s*$)/gi, '').replace(/[ ]{2,}/gi, ' ').replace(/\t/g, '');
-  return '';
+/**
+ * Función que utiliza el archivo utils/Base64.js
+ * Detecta si una cadena es Base64 válida y la decodifica.
+ */
+function smartDecode(str) {
+  if (!str) return '';
+  // Intento de limpieza si viene con prefijos comunes
+  var cleanStr = str.replace('base64:', '');
+  try {
+    // Expresión regular para validar formato Base64
+    if (/^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/.test(cleanStr)) {
+      return Base64.decode(cleanStr);
+    }
+  } catch (e) {
+    return str;
+  }
+  return str;
 }
 
+// --- CONFIGURACIÓN DE SERVICIO ---
 service.create(plugin.title, plugin.id + ':start', 'tv', true, logo);
 
 settings.globalSettings(plugin.id, plugin.title, logo, plugin.synopsis);
-settings.createBool('disableSampleList', 'Don\'t show Sample M3U list', false, function(v) {
-  service.disableSampleList = v;
-});
-settings.createBool('disableSampleXMLList', 'Don\'t show Sample XML list', false, function(v) {
-  service.disableSampleXMLList = v;
-});
-settings.createBool('disableProvidersList', 'Don\'t show Provider list', false, function(v) {
-  service.disableProviderList = v;
-});
-settings.createBool('disableEPG', 'Don\'t fetch EPG', true, function(v) {
-  service.disableEPG = v;
-});
-settings.createString('acestreamIp', 'IP address of AceStream Proxy. Enter IP only.', '192.168.0.93', function(v) {
+settings.createString('acestreamIp', 'IP AceStream Proxy', '192.168.0.93', function(v) {
   service.acestreamIp = v;
-});
-settings.createBool('debug', 'Enable debug logging', false, function(v) {
-  service.debug = v;
-});
-settings.createBool('disableMyFavorites', 'Don\'t show My Favorites', false, function(v) {
-  service.disableMyFavorites = v;
-});
-settings.createAction('cleanFavorites', 'Clean My Favorites', function() {
-  store.list = '[]';
-  popup.notify('Favorites has been cleaned successfully', 2);
 });
 
 var store = require('movian/store').create('favorites');
-if (!store.list) {
-  store.list = '[]';
-}
-
 var playlists = require('movian/store').create('playlists');
-if (!playlists.list) {
-  playlists.list = '[]';
-}
+if (!store.list) store.list = '[]';
+if (!playlists.list) playlists.list = '[]';
 
-function addOptionForAddingToMyFavorites(item, link, title, icon) {
-  item.addOptAction('Add \'' + title + '\' to My Favorites', function() {
-    var entry = JSON.stringify({
-      link: encodeURIComponent(link),
-      title: encodeURIComponent(title),
-      icon: encodeURIComponent(icon),
-    });
-    store.list = JSON.stringify([entry].concat(eval(store.list)));
-    popup.notify('\'' + title + '\' has been added to My Favorites.', 2);
-  });
-}
+// --- RUTAS DE REPRODUCCIÓN ---
 
-// --- RUTA: REPRODUCCIÓN TORRENT HÍBRIDA ---
 new page.Route(plugin.id + ':torrentPlayback:(.*):(.*)', function(page, url, title) {
   page.loading = true;
-  page.metadata.title = unescape(title);
-  var torrentUrl = unescape(url);
-
-  var nativeSource = 'torrent:' + torrentUrl;
-  var aceSource = 'http://' + service.acestreamIp + ':6878/ace/getstream?url=' + escape(torrentUrl);
+  var decodedUrl = smartDecode(unescape(url)); // Uso de Base64 aquí
+  
+  var nativeSource = 'torrent:' + decodedUrl;
+  var aceSource = 'http://' + service.acestreamIp + ':6878/ace/getstream?url=' + escape(decodedUrl);
 
   page.type = 'video';
   page.source = 'videoparams:' + JSON.stringify({
@@ -127,140 +103,103 @@ new page.Route(plugin.id + ':torrentPlayback:(.*):(.*)', function(page, url, tit
       {url: nativeSource, mimetype: 'video/torrent'},
       {url: aceSource, mimetype: 'application/x-mpegURL'}
     ],
-    no_fs_scan: true,
-    no_subtitle_scan: false
+    no_fs_scan: true
   });
   page.loading = false;
 });
 
-new page.Route(plugin.id + ':acestream:(.*):(.*)', function(page, id, title) {
-  playUrl(page, 'http://' + service.acestreamIp + ':6878/ace/manifest.m3u8?id=' + id.replace('//', ''), plugin.id + ':acestream:' + id + ':' + title, unescape(title));
-});
-
-function playUrl(page, url, canonicalUrl, title, mimetype, icon, subsscan, imdbid) {
+function playUrl(page, url, canonicalUrl, title, mimetype) {
   if (url) {
-    if (url.substr(0, 2) == '//') url = 'http:' + url;
+    var finalUrl = smartDecode(url); // Uso de Base64 aquí
+    if (finalUrl.substr(0, 2) == '//') finalUrl = 'http:' + finalUrl;
+    
     page.type = 'video';
     page.source = 'videoparams:' + JSON.stringify({
       title: title,
-      imdbid: imdbid ? imdbid : void (0),
       canonicalUrl: canonicalUrl,
-      icon: icon ? unescape(icon) : void (0),
       sources: [{
-        url: url.match(/m3u8/) ? 'hls:' + url : url,
-        mimetype: mimetype ? mimetype : void (0),
+        url: finalUrl.match(/m3u8/) ? 'hls:' + finalUrl : finalUrl,
+        mimetype: mimetype || void(0),
       }],
-      no_subtitle_scan: subsscan ? false : true,
-      no_fs_scan: subsscan ? false : true,
+      no_subtitle_scan: true,
+      no_fs_scan: true,
     });
   } else {
-    page.error('Sorry, can\'t get the link :(');
+    page.error('URL no válida');
   }
   page.loading = false;
 }
+
+// --- LÓGICA DE ITEMS Y PLAYLISTS ---
 
 function isPlaylist(pl) {
   var upl = unescape(pl).toUpperCase();
   if (upl.indexOf('MAGNET:') === 0 || upl.indexOf('.TORRENT') !== -1) return false;
-
   var extension = upl.split('.').pop();
   if (upl.substr(0, 4) == 'XML:') return 'xml';
-  if (upl.substr(0, 4) == 'M3U:' || (extension == 'M3U' && upl.substr(0, 4) != 'HLS:')) return 'm3u';
-  if (upl.match(/BIT.DO/) || upl.match(/BIT.LY/) || upl.match(/GOO.GL/) || upl.match(/TINYURL.COM/) || upl.match(/RAW.GITHUB/)) return 'm3u';
+  if (upl.substr(0, 4) == 'M3U:' || (extension == 'M3U')) return 'm3u';
   return false;
 }
 
-function addItem(page, url, title, icon, description, genre, epgForTitle, headers) {
-  if (!epgForTitle) epgForTitle = '';
+function addItem(page, url, title, icon, description) {
   var type = 'video';
   var link;
   var playlistType = isPlaylist(url);
 
-  if (url.indexOf('magnet:') === 0 || url.toLowerCase().indexOf('.torrent') !== -1) {
-    link = plugin.id + ':torrentPlayback:' + escape(url) + ':' + escape(title);
-  } else if (url.match(/([\s\S]*?):(.*)/) && playlistType) {
-    link = playlistType + ':' + encodeURIComponent(url) + ':' + escape(title);
+  // Si la URL está en Base64, la procesamos antes de decidir la ruta
+  var processedUrl = smartDecode(url);
+
+  if (processedUrl.indexOf('magnet:') === 0 || processedUrl.toLowerCase().indexOf('.torrent') !== -1) {
+    link = plugin.id + ':torrentPlayback:' + escape(processedUrl) + ':' + escape(title);
+  } else if (playlistType) {
+    link = playlistType + ':' + encodeURIComponent(processedUrl) + ':' + escape(title);
     type = 'directory';
-  } else if (url.match(/([\s\S]*?):(.*)/) && !url.toUpperCase().match(/HTTP/) && !url.toUpperCase().match(/RTMP/)) {
-    link = plugin.id + ':' + url + ':' + escape(title);
   } else {
-    var linkUrl = url.toUpperCase().match(/M3U8/) || url.toUpperCase().match(/\.SMIL/) ? 'hls:' + url : url;
+    var linkUrl = processedUrl.toUpperCase().match(/M3U8/) ? 'hls:' + processedUrl : processedUrl;
     link = 'videoparams:' + JSON.stringify({
       title: title,
-      icon: icon ? icon : void (0),
       sources: [{ url: linkUrl }],
-      no_fs_scan: true,
-      no_subtitle_scan: true,
+      no_fs_scan: true
     });
   }
 
-  if (headers && url.indexOf('magnet:') === -1) {
-    io.httpInspectorCreate('.*' + url.replace('http://', '').replace('https://', '').split(/[/?#]/)[0].replace(/\./g, '\\.') + '.*', function(req) {
-      var tmp = headers.split('|');
-      for (var i in tmp) {
-        var header = unescape(tmp[i].replace(/\"/g, '')).match(/([\s\S]*?)=([\s\S]*?)$/);
-        if (header) req.setHeader(header[1], header[2]);
-      }
-    });
-  }
-
-  var item = page.appendItem(link, type, {
-    title: new RichText(title + epgForTitle),
-    icon: icon ? icon : null,
-    genre: genre,
-    description: new RichText((url.indexOf('magnet:') === 0 ? coloredStr('Protocolo: BitTorrent', green) : coloredStr('Link: ', orange) + url) +
-      (description ? '\n' + description : '')),
+  page.appendItem(link, type, {
+    title: new RichText(title),
+    icon: icon || null,
+    description: new RichText(coloredStr('Link: ', orange) + processedUrl)
   });
-  addOptionForAddingToMyFavorites(item, link, title, icon);
 }
 
-// --- INICIO DEL PLUGIN ---
+// --- INICIO ---
 new page.Route(plugin.id + ':start', function(page) {
   setPageHeader(page, plugin.title);
-  if (!service.disableMyFavorites) page.appendItem(plugin.id + ':favorites', 'directory', { title: 'My Favorites' });
-
-  page.appendItem('', 'separator', { title: 'M3U & XML playlists' });
-
-  page.options.createAction('addPlaylistM3U', 'Add M3U playlist / Magnet', function() {
-    var result = popup.textDialog('Enter URL or Magnet Link:', true, true);
+  
+  page.appendItem('', 'separator', { title: 'Gestión de Contenido' });
+  
+  page.options.createAction('addPlaylistM3U', 'Añadir M3U / Magnet / Base64', function() {
+    var result = popup.textDialog('Introduce URL (Soporta Base64):', true, true);
     if (!result.rejected && result.input) {
-      var link = result.input;
-      var name = popup.textDialog('Enter name:', true, true);
+      var name = popup.textDialog('Nombre de la lista:', true, true);
       if (!name.rejected && name.input) {
-        var entry = JSON.stringify({ title: encodeURIComponent(name.input), link: 'm3u:' + encodeURIComponent(link) });
+        var entry = JSON.stringify({ title: encodeURIComponent(name.input), link: 'm3u:' + encodeURIComponent(result.input) });
         playlists.list = JSON.stringify([entry].concat(eval(playlists.list)));
-        page.flush();
         page.redirect(plugin.id + ':start');
       }
     }
   });
 
-  showPlaylist(page);
+  // Mostrar listas guardadas
+  var pl = eval(playlists.list);
+  for (var i in pl) {
+    var item = JSON.parse(pl[i]);
+    var rawLink = decodeURIComponent(item.link);
+    // Intentamos decodificar por si el usuario pegó un Base64 directamente
+    var cleanLink = smartDecode(rawLink); 
+    
+    var route = cleanLink.indexOf('magnet:') !== -1 ? 
+                plugin.id + ':torrentPlayback:' + escape(cleanLink) : 
+                'm3u:' + encodeURIComponent(cleanLink);
 
-  if (!service.disableProviderList) {
-    page.appendItem('', 'separator', { title: 'Providers' });
-    page.appendItem(plugin.id + ':tivixStart', 'directory', { title: 'tv.tivix.co' });
-    page.appendItem(plugin.id + ':youtvStart', 'directory', { title: 'Youtv.com.ua' });
+    page.appendItem(route, 'directory', { title: decodeURIComponent(item.title) });
   }
 });
-
-function showPlaylist(page) {
-  var playlist = eval(playlists.list);
-  for (var i in playlist) {
-    var itemmd = JSON.parse(playlist[i]);
-    var cleanLink = decodeURIComponent(itemmd.link);
-    var route = cleanLink.indexOf('magnet:') !== -1 ? plugin.id + ':torrentPlayback:' + escape(cleanLink) : cleanLink + ':' + itemmd.title;
-
-    var item = page.appendItem(route, 'directory', { title: decodeURIComponent(itemmd.title) });
-  }
-}
-
-// --- FUNCIONES DE DECODIFICACIÓN (Uso de Base64) ---
-function decodeData(data) {
-  try {
-    // Aquí es donde el archivo Base64.js entra en acción
-    return Base64.decode(data);
-  } catch (e) {
-    return data;
-  }
-}
