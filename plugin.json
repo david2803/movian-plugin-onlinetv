@@ -8,7 +8,7 @@
         "file": "tv.js",
         "showtimeVersion": "4.8",
         "type": "ecmascript",
-        "id": "tv",
+        "id": "kd_iptv",
         "icon": "logo.png",
         "category": "tv",
         "apiversion": 2
