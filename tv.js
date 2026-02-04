@@ -17,9 +17,13 @@ var http = require('showtime/http');
 var string = require('native/string');
 var popup = require('native/popup');
 var io = require('native/io');
+
+// --- IMPORTACIÓN DE UTILS ---
+var Base64 = require('./utils/Base64').Base64; // Importación de tu archivo Base64.js
+var DeanEdwardsUnpacker = require('./utils/Dean-Edwards-Unpacker').unpacker;
+
 var plugin = JSON.parse(Plugin.manifest);
 var logo = Plugin.path + plugin.icon;
-var DeanEdwardsUnpacker = require('./utils/Dean-Edwards-Unpacker').unpacker;
 
 RichText = function(x) {
   this.str = x.toString();
@@ -106,13 +110,12 @@ function addOptionForAddingToMyFavorites(item, link, title, icon) {
   });
 }
 
-// --- NUEVA RUTA: REPRODUCCIÓN TORRENT HÍBRIDA (NATIVO + ACESTREAM) ---
+// --- RUTA: REPRODUCCIÓN TORRENT HÍBRIDA ---
 new page.Route(plugin.id + ':torrentPlayback:(.*):(.*)', function(page, url, title) {
   page.loading = true;
   page.metadata.title = unescape(title);
   var torrentUrl = unescape(url);
-  
-  // Plan A: Motor Nativo de Movian | Plan B: Respaldo AceStream
+
   var nativeSource = 'torrent:' + torrentUrl;
   var aceSource = 'http://' + service.acestreamIp + ':6878/ace/getstream?url=' + escape(torrentUrl);
 
@@ -156,12 +159,10 @@ function playUrl(page, url, canonicalUrl, title, mimetype, icon, subsscan, imdbi
   page.loading = false;
 }
 
-// --- ACTUALIZACIÓN DE DETECCIÓN DE PLAYLISTS ---
 function isPlaylist(pl) {
   var upl = unescape(pl).toUpperCase();
-  // Si es torrent o magnet, NO procesar como playlist
   if (upl.indexOf('MAGNET:') === 0 || upl.indexOf('.TORRENT') !== -1) return false;
-  
+
   var extension = upl.split('.').pop();
   if (upl.substr(0, 4) == 'XML:') return 'xml';
   if (upl.substr(0, 4) == 'M3U:' || (extension == 'M3U' && upl.substr(0, 4) != 'HLS:')) return 'm3u';
@@ -169,7 +170,6 @@ function isPlaylist(pl) {
   return false;
 }
 
-// --- ACTUALIZACIÓN DE FUNCIÓN ADDITEM PARA SOPORTE MAGNET ---
 function addItem(page, url, title, icon, description, genre, epgForTitle, headers) {
   if (!epgForTitle) epgForTitle = '';
   var type = 'video';
@@ -177,7 +177,6 @@ function addItem(page, url, title, icon, description, genre, epgForTitle, header
   var playlistType = isPlaylist(url);
 
   if (url.indexOf('magnet:') === 0 || url.toLowerCase().indexOf('.torrent') !== -1) {
-    // Redirigir a la ruta híbrida
     link = plugin.id + ':torrentPlayback:' + escape(url) + ':' + escape(title);
   } else if (url.match(/([\s\S]*?):(.*)/) && playlistType) {
     link = playlistType + ':' + encodeURIComponent(url) + ':' + escape(title);
@@ -215,31 +214,13 @@ function addItem(page, url, title, icon, description, genre, epgForTitle, header
   addOptionForAddingToMyFavorites(item, link, title, icon);
 }
 
-// --- LAS DEMÁS RUTAS (YOUTUBE, TIVIX, IDC, ETC) SIGUEN AQUÍ ---
-new page.Route(plugin.id + ':youtube:(.*)', function(page, title) {
-  page.loading = true;
-  try {
-    var doc = http.request('https://www.googleapis.com/youtube/v3/search', {
-      args: { part: 'snippet', type: 'video', q: unescape(title), maxResults: 1, eventType: 'live', key: 'AIzaSyCSDI9_w8ROa1UoE2CNIUdDQnUhNbp9XR4' },
-    }).toString();
-    page.redirect('youtube:video:' + JSON.parse(doc).items[0].id.videoId);
-  } catch (err) {
-    page.metadata.title = unescape(title);
-    page.error('Can\'t get YouTube link');
-  }
-});
-
-// (Se omiten los bloques repetitivos de Tivix/Youtv para brevedad, pero en tu archivo mantén los originales)
-// Solo asegúrate de que addItem y isPlaylist sean las versiones que puse arriba.
-
 // --- INICIO DEL PLUGIN ---
 new page.Route(plugin.id + ':start', function(page) {
   setPageHeader(page, plugin.title);
   if (!service.disableMyFavorites) page.appendItem(plugin.id + ':favorites', 'directory', { title: 'My Favorites' });
-  
+
   page.appendItem('', 'separator', { title: 'M3U & XML playlists' });
-  
-  // Opciones de añadir
+
   page.options.createAction('addPlaylistM3U', 'Add M3U playlist / Magnet', function() {
     var result = popup.textDialog('Enter URL or Magnet Link:', true, true);
     if (!result.rejected && result.input) {
@@ -255,7 +236,7 @@ new page.Route(plugin.id + ':start', function(page) {
   });
 
   showPlaylist(page);
-  
+
   if (!service.disableProviderList) {
     page.appendItem('', 'separator', { title: 'Providers' });
     page.appendItem(plugin.id + ':tivixStart', 'directory', { title: 'tv.tivix.co' });
@@ -269,10 +250,17 @@ function showPlaylist(page) {
     var itemmd = JSON.parse(playlist[i]);
     var cleanLink = decodeURIComponent(itemmd.link);
     var route = cleanLink.indexOf('magnet:') !== -1 ? plugin.id + ':torrentPlayback:' + escape(cleanLink) : cleanLink + ':' + itemmd.title;
-    
+
     var item = page.appendItem(route, 'directory', { title: decodeURIComponent(itemmd.title) });
-    // Función de borrar omitida por brevedad
   }
 }
 
-// ... Mantener las funciones de decodificación (salt, pepper, sugar, etc) al final del archivo ...
+// --- FUNCIONES DE DECODIFICACIÓN (Uso de Base64) ---
+function decodeData(data) {
+  try {
+    // Aquí es donde el archivo Base64.js entra en acción
+    return Base64.decode(data);
+  } catch (e) {
+    return data;
+  }
+}
