@@ -1,13 +1,13 @@
 {
-  "id": "tv",
-  "version": "1.0.30",
+  "id": "kd_iptv",
+  "version": "1.1.0",
   "api_version": 2,
-  "name": "Online TV (Torrent Mod)",
-  "description": "Cargador de listas M3U/XML con soporte nativo para Torrents y Magnets.",
-  "author": "lprot / Mod",
+  "name": "K&D IPTV Premium",
+  "description": "Cargador avanzado de listas M3U/XML con soporte nativo para Torrents, Magnets y Base64.",
+  "author": "K&D IPTV",
   "icon": "logo.png",
   "url": "tv.js",
   "category": "tv",
   "platform": "any",
-  "synopsis": "Reproduce canales IPTV y enlaces Torrent/Magnet directamente."
+  "synopsis": "Tu colección de canales y fuentes de video en alta definición con soporte híbrido AceStream."
 }
