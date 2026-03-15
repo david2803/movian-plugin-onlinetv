@@ -1,11 +1,18 @@
 {
-    "id": "kd_iptv",
-    "title": "K&D IPTV",
-    "version": "1.1.0",
-    "file": "tv.js",
-    "icon": "logo.png",
-    "author": "K&D IPTV",
-    "description": "Cargador avanzado K&D con soporte Base64 y Torrent.",
-    "type": "ecmascript",
-    "apiversion": 2
+  "id": "kd.iptv.premium",
+  "version": "1.1.1",
+  "api_version": 2,
+  "name": "K&D IPTV Premium",
+  "description": "IPTV, Torrents y Base64 nativo.",
+  "author": "K&D IPTV",
+  "icon": "logo.png",
+  "url": "tv.js",
+  "category": "tv",
+  "platform": "any",
+  "permissions": [
+    "http",
+    "https",
+    "tcp-listen",
+    "tcp-connect"
+  ]
 }
