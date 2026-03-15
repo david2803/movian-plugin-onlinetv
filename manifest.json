@@ -1,6 +1,6 @@
 {
-  "id": "kd_iptv",
-  "version": "1.1.0",
+  "id": "kd.iptv.premium",
+  "version": "1.1.1",
   "api_version": 2,
   "name": "K&D IPTV Premium",
   "description": "IPTV, Torrents y Base64 nativo.",
@@ -8,6 +8,11 @@
   "icon": "logo.png",
   "url": "tv.js",
   "category": "tv",
-  "platform": "any"
+  "platform": "any",
+  "permissions": [
+    "http",
+    "https",
+    "tcp-listen",
+    "tcp-connect"
+  ]
 }
-
