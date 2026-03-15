@@ -2,7 +2,7 @@
   "version": 1,
   "plugins": [
     {
-      "id": "kd_iptv",
+      "id": "kd.iptv.premium",
       "title": "K&D IPTV Premium",
       "description": "Cargador avanzado con soporte Torrent y Base64.",
       "synopsis": "Entertainment System",
