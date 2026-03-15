@@ -106,11 +106,12 @@ new page.Route(plugin.id + ':torrentPlayback:(.*):(.*)', function(page, url, tit
   page.source = 'videoparams:' + JSON.stringify({
     title: unescape(title),
     sources: [
-      {url: 'torrent:' + decodedUrl, mimetype: 'video/torrent'},
+      {url: 'torrent:bt:' + decodedUrl, mimetype: 'video/torrent'},
       {url: 'http://127.0.0.1:6878/ace/getstream?url=' + escape(decodedUrl), mimetype: 'application/x-mpegURL'}
     ]
   });
 });
+
 
 // Soporte RichText para Movian
 function RichText(str) { this.str = str; }
